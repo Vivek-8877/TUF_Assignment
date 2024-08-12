@@ -51,19 +51,14 @@ jobs:
       run: |
         rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-backend/ ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }}:/home/vivek_project/banner-backend/
 
-    - name: Deploy Frontend to VPS
+    - name: Deploy Frontend to Web Server Directory
       run: |
-        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-frontend/build/ ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }}:/home/vivek_project/banner-frontend/
+        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-frontend/build/ ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }}:/var/www/html/banner-frontend/
 
     # Manage Backend Application with PM2
     - name: Restart Backend Application with PM2
       run: |
         ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "/usr/local/bin/pm2 restart banner-backend-app --update-env || /usr/local/bin/pm2 start /home/vivek_project/banner-backend/index.js --name banner-backend-app --update-env"
-
-    # Manage Frontend Application with PM2
-    - name: Serve Frontend Application with PM2
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "/usr/local/bin/pm2 restart banner-frontend-app || /usr/local/bin/pm2 start /home/vivek_project/banner-frontend/server.js --name banner-frontend-app"
 
     # Ensure PM2 Startup on Reboot
     - name: Ensure PM2 Startup on Reboot
