@@ -8,7 +8,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const db = mysql.createConnection({
-    host: 'localhost',
+    host: '127.0.0.1',
     user: 'root',
     password: 'root',
     database: 'banner_app',
@@ -54,5 +54,5 @@ app.post('/api/banner', (req, res) => {
     });
 });
 
-const PORT = 5000;
+const PORT = 8086;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

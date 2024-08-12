@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { FiEdit3, FiCheck, FiX } from 'react-icons/fi'; // Import icons
+const localhost = "http://62.72.56.86:8086";
+// const localhost = "http://localhost:8086";
 
 const BannerForm = () => {
     const [banner, setBanner] = useState(null);
@@ -12,7 +14,7 @@ const BannerForm = () => {
     const [isTimerPaused, setIsTimerPaused] = useState(false);
 
     useEffect(() => {
-        axios.get('http://localhost:5000/api/banner')
+        axios.get(`${localhost}/api/banner`)
             .then(response => {
                 const bannerData = response.data;
                 if (bannerData) {
@@ -35,7 +37,7 @@ const BannerForm = () => {
             isVisible: false,
         }));
 
-        axios.post('http://localhost:5000/api/banner', {
+        axios.post(`${localhost}/api/banner`, {
             ...banner,
             isVisible: false,
         })
@@ -66,7 +68,7 @@ const BannerForm = () => {
 
             setBanner(updatedBanner);
 
-            axios.post('http://localhost:5000/api/banner', updatedBanner)
+            axios.post(`${localhost}/api/banner`, updatedBanner)
                 .then(response => {
                     console.log('Banner visibility toggled:', response.data.status);
                 })
@@ -101,7 +103,7 @@ const BannerForm = () => {
         setEditing(null); // End editing mode
         setIsTimerPaused(false); // Resume the timer
 
-        axios.post('http://localhost:5000/api/banner', updatedBanner)
+        axios.post(`${localhost}/api/banner`, updatedBanner)
             .then(response => {
                 console.log('Banner description updated:', response.data.status);
             })
@@ -116,7 +118,7 @@ const BannerForm = () => {
         setEditing(null);
         setIsTimerPaused(false); // Resume the timer
 
-        axios.post('http://localhost:5000/api/banner', updatedBanner)
+        axios.post(`${localhost}/api/banner`, updatedBanner)
             .then(response => {
                 console.log('Banner link updated:', response.data.status);
             })
@@ -132,7 +134,7 @@ const BannerForm = () => {
         setEditing(null);
         setIsTimerPaused(false); // Resume the timer
 
-        axios.post('http://localhost:5000/api/banner', updatedBanner)
+        axios.post(`${localhost}/api/banner`, updatedBanner)
             .then(response => {
                 console.log('Banner timer updated:', response.data.status);
             })
