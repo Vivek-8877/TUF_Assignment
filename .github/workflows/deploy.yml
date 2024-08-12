@@ -1,4 +1,4 @@
-name: Deploy Node.js App
+name: Deploy Full Stack Application
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main  # Trigger the workflow on push to the main branch
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,15 +18,25 @@ jobs:
       with:
         node-version: '22.5.1'  # Use Node.js version 22.5.1
 
-    - name: Install dependencies
+    # Backend Deployment Steps
+    - name: Install backend dependencies
+      working-directory: banner-backend
       run: npm install
 
-    - name: Build project
-      run: npm run build  # Only include if you have a build step
+    - name: Build backend
+      working-directory: banner-backend
+      run: npm run build  # Only include this if you have a build step for the backend
 
-    - name: Test project
-      run: npm test  # Optional: Run tests before deploying
+    # Frontend Deployment Steps
+    - name: Install frontend dependencies
+      working-directory: banner-frontend
+      run: npm install
 
+    - name: Build frontend
+      working-directory: banner-frontend
+      run: npm run build
+
+    # Deploy to VPS
     - name: Deploy to VPS
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -37,8 +47,17 @@ jobs:
         echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan $SERVER_IP >> ~/.ssh/known_hosts
-        rsync -avz --delete --exclude='node_modules' --exclude='.git' . $USERNAME@$SERVER_IP:/home/vivek_project/
+        
+        # Deploy backend
+        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-backend/ $USERNAME@$SERVER_IP:/home/vivek_project/banner-backend/
 
-    - name: Restart Application
+        # Deploy frontend
+        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-frontend/build/ $USERNAME@$SERVER_IP:/home/vivek_project/banner-frontend/
+
+    - name: Restart Backend Application
       run: |
-        ssh -i ~/.ssh/id_rsa $USERNAME@$SERVER_IP "cd /home/vivek_project && pm2 restart your-app || pm2 start /home/vivek_project/app.js --name your-app"
+        ssh -i ~/.ssh/id_rsa $USERNAME@$SERVER_IP "cd /home/vivek_project/banner-backend && pm2 restart banner-backend-app || pm2 start /home/vivek_project/banner-backend/index.js --name banner-backend-app"
+
+    - name: Serve Frontend Application
+      run: |
+        ssh -i ~/.ssh/id_rsa $USERNAME@$SERVER_IP "pm2 restart banner-frontend-app || pm2 start /home/vivek_project/banner-frontend/server.js --name banner-frontend-app"
