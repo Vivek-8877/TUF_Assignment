@@ -56,7 +56,7 @@ jobs:
 
     - name: Restart Backend Application
       run: |
-        ssh -i ~/.ssh/id_rsa $USERNAME@$SERVER_IP "cd /home/vivek_project/banner-backend && pm2 restart banner-backend-app || pm2 start /home/vivek_project/banner-backend/index.js --name banner-backend-app"
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "pm2 restart banner-backend-app || pm2 start /home/vivek_project/banner-backend/index.js --name banner-backend-app"
 
     - name: Serve Frontend Application
       run: |
