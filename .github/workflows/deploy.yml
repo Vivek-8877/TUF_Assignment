@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout Repository
       uses: actions/checkout@v2
 
     - name: Set up Node.js
@@ -19,45 +19,53 @@ jobs:
         node-version: '22.5.1'  # Use Node.js version 22.5.1
 
     # Backend Deployment Steps
-    - name: Install backend dependencies
+    - name: Install Backend Dependencies
       working-directory: banner-backend
       run: npm install
 
-    # Skip build step for backend since it doesn't have a build script
-    - name: Skip backend build
+    - name: Skip Backend Build
       run: echo "No build step required for backend"
 
     # Frontend Deployment Steps
-    - name: Install frontend dependencies
+    - name: Install Frontend Dependencies
       working-directory: banner-frontend
       run: npm install
 
-    - name: Build frontend
+    - name: Build Frontend
       working-directory: banner-frontend
       run: npm run build
 
-    # Deploy to VPS
-    - name: Deploy to VPS
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SERVER_IP: '62.72.56.86'
-        USERNAME: 'root'
+    # SSH Setup
+    - name: Set Up SSH Key
       run: |
         mkdir -p ~/.ssh
-        echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan $SERVER_IP >> ~/.ssh/known_hosts
-        
-        # Deploy backend
-        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-backend/ $USERNAME@$SERVER_IP:/home/vivek_project/banner-backend/
 
-        # Deploy frontend
-        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-frontend/build/ $USERNAME@$SERVER_IP:/home/vivek_project/banner-frontend/
-
-    - name: Restart Backend Application
+    - name: Add Server to Known Hosts
       run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "/usr/local/bin/pm2 restart banner-backend-app || /usr/local/bin/pm2 start /home/vivek_project/banner-backend/index.js --name banner-backend-app"
+        ssh-keyscan ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-    - name: Serve Frontend Application
+    # Deploy to VPS
+    - name: Deploy Backend to VPS
       run: |
-        ssh -i ~/.ssh/id_rsa $USERNAME@$SERVER_IP "pm2 restart banner-frontend-app || pm2 start /home/vivek_project/banner-frontend/server.js --name banner-frontend-app"
+        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-backend/ ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }}:/home/vivek_project/banner-backend/
+
+    - name: Deploy Frontend to VPS
+      run: |
+        rsync -avz --delete --exclude='node_modules' --exclude='.git' banner-frontend/build/ ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }}:/home/vivek_project/banner-frontend/
+
+    # Manage Backend Application with PM2
+    - name: Restart Backend Application with PM2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "/usr/local/bin/pm2 restart banner-backend-app --update-env || /usr/local/bin/pm2 start /home/vivek_project/banner-backend/index.js --name banner-backend-app --update-env"
+
+    # Manage Frontend Application with PM2
+    - name: Serve Frontend Application with PM2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "/usr/local/bin/pm2 restart banner-frontend-app || /usr/local/bin/pm2 start /home/vivek_project/banner-frontend/server.js --name banner-frontend-app"
+
+    # Ensure PM2 Startup on Reboot
+    - name: Ensure PM2 Startup on Reboot
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.USERNAME }}@${{ secrets.SERVER_IP }} "/usr/local/bin/pm2 startup && /usr/local/bin/pm2 save"
