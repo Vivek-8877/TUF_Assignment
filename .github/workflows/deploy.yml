@@ -23,9 +23,9 @@ jobs:
       working-directory: banner-backend
       run: npm install
 
-    - name: Build backend
-      working-directory: banner-backend
-      run: npm run build  # Only include this if you have a build step for the backend
+    # Skip build step for backend since it doesn't have a build script
+    - name: Skip backend build
+      run: echo "No build step required for backend"
 
     # Frontend Deployment Steps
     - name: Install frontend dependencies
