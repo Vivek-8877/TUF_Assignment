@@ -1,11 +1,14 @@
 import React from 'react';
+import ThreeDBackground from './Components/ThreeDBackground';
 import BannerForm from './Components/BannerForm';
-import './index.css';
-
 
 function App() {
     return (
-        <div>
+        <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
+            {/* 3D Background */}
+            <ThreeDBackground />
+
+            {/* Main Content */}
             <BannerForm />
         </div>
     );
