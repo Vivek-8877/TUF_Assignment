@@ -103,7 +103,7 @@ const BannerForm = () => {
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen z-10">
             {isVisible && (
-                <div className="relative flex flex-col items-center justify-center bg-gray-800 bg-opacity-80 text-white p-6 rounded-lg shadow-xl max-w-4xl mx-auto min-w-[320px]">
+                <div className="relative flex flex-col items-center justify-center bg-gray-800 bg-opacity-80 text-white p-4 sm:p-6 rounded-lg shadow-xl max-w-xl sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto w-full min-w-[320px]">
                     {banner && banner.isVisible && (
                         <BannerDisplay
                             banner={banner}
