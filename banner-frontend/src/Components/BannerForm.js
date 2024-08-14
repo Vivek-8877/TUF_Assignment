@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import BannerDisplay from './BannerDisplay';
+import CustomAlert from './CustomAlert';
 import { localhost } from '../utils/config';
 
 const BannerForm = () => {
@@ -11,14 +12,17 @@ const BannerForm = () => {
     const [newLink, setNewLink] = useState('');
     const [newTimer, setNewTimer] = useState('');
     const [isTimerPaused, setIsTimerPaused] = useState(false);
-    const [isVisible, setIsVisible] = useState(true);
+    const [isVisible, setIsVisible] = useState(false);
+    const [alert, setAlert] = useState({ show: false, message: '', type: '' });
 
-    useEffect(() => {
+    // Function to fetch banner data
+    const fetchBannerData = useCallback(() => {
         axios.get(`${localhost}/api/banner`)
             .then(response => {
                 const bannerData = response.data;
                 if (bannerData) {
                     setBanner(bannerData);
+                    setIsVisible(bannerData.isVisible);
                     if (bannerData.timer) {
                         setTimeRemaining(bannerData.timer);
                         setNewTimer(bannerData.timer);
@@ -27,23 +31,35 @@ const BannerForm = () => {
                     setNewLink(bannerData.link);
                 }
             })
-            .catch(error => console.error('Error fetching banner data:', error));
+            .catch(error => {
+                console.error('Error fetching banner data:', error);
+                setAlert({ show: true, message: 'Failed to load banner data. Backend unable to communicate.', type: 'error' });
+                setTimeout(() => setAlert({ show: false, message: '', type: '' }), 5000);
+            });
     }, []);
 
-    const hideBanner = useCallback(() => {
-        setBanner(prevBanner => ({
-            ...prevBanner,
-            isVisible: false,
-        }));
+    useEffect(() => {
+        fetchBannerData(); // Initial fetch
+    }, [fetchBannerData]);
 
+    const hideBanner = useCallback(() => {
+        setIsVisible(false);
         axios.post(`${localhost}/api/banner`, {
             ...banner,
             isVisible: false,
         })
             .then(response => {
                 console.log('Banner visibility toggled:', response.data.status);
+                setBanner(prevBanner => ({
+                    ...prevBanner,
+                    isVisible: false,
+                }));
             })
-            .catch(error => console.error('Error toggling banner visibility:', error));
+            .catch(error => {
+                console.error('Error toggling banner visibility:', error);
+                setAlert({ show: true, message: 'Failed to update banner visibility.', type: 'error' });
+                setTimeout(() => setAlert({ show: false, message: '', type: '' }), 5000);
+            });
     }, [banner]);
 
     useEffect(() => {
@@ -52,14 +68,41 @@ const BannerForm = () => {
                 setTimeRemaining(prevTime => prevTime - 1);
             }, 1000);
             return () => clearInterval(interval);
-        } else if (timeRemaining === 0 && banner?.isVisible) {
+        } else if (timeRemaining === 0 && isVisible) {
             hideBanner();
         }
-    }, [timeRemaining, isTimerPaused, banner?.isVisible, hideBanner]);
+    }, [timeRemaining, isTimerPaused, isVisible, hideBanner]);
 
+    
     const toggleBannerVisibility = () => {
-        setIsVisible(prev => !prev);
+        const newVisibility = !isVisible;
+    
+        if (newVisibility && timeRemaining === 0) {
+            // If toggling visibility to on, and the timer had reached zero, reset the timer
+            setTimeRemaining(newTimer); // Reset the timer to the original value
+            setIsTimerPaused(false); // Start the countdown again
+        }
+    
+        setIsVisible(newVisibility);
+    
+        // Update visibility in the database
+        axios.post(`${localhost}/api/banner`, {
+            ...banner,
+            isVisible: newVisibility,
+        })
+            .then(response => {
+                console.log('Banner visibility updated:', response.data.status);
+                if (newVisibility) {
+                    fetchBannerData(); // Fetch fresh data if visibility is toggled on
+                }
+            })
+            .catch(error => {
+                console.error('Error toggling banner visibility:', error);
+                setAlert({ show: true, message: 'Failed to update banner visibility.', type: 'error' });
+                setTimeout(() => setAlert({ show: false, message: '', type: '' }), 5000);
+            });
     };
+    
 
     const startEditing = (type) => {
         setEditing(type);
@@ -95,31 +138,42 @@ const BannerForm = () => {
 
         axios.post(`${localhost}/api/banner`, updatedBanner)
             .then(response => {
-                console.log('Banner updated:', response.data.status);
+                setAlert({ show: true, message: 'Banner updated successfully!', type: 'success' });
+                setTimeout(() => setAlert({ show: false, message: '', type: '' }), 3000);
             })
-            .catch(error => console.error('Error updating banner:', error));
+            .catch(error => {
+                console.error('Error updating banner:', error);
+                setAlert({ show: true, message: 'Failed to update banner.', type: 'error' });
+                setTimeout(() => setAlert({ show: false, message: '', type: '' }), 5000);
+            });
     };
 
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen z-10">
-            {isVisible && (
+            {alert.show && (
+                <CustomAlert
+                    message={alert.message}
+                    type={alert.type}
+                    onClose={() => setAlert({ show: false, message: '', type: '' })}
+                />
+            )}
+
+            {isVisible && banner && (
                 <div className="relative flex flex-col items-center justify-center bg-gray-800 bg-opacity-80 text-white p-4 sm:p-6 rounded-lg shadow-xl max-w-xl sm:max-w-2xl md:max-w-4xl lg:max-w-6xl mx-auto w-full min-w-[320px]">
-                    {banner && banner.isVisible && (
-                        <BannerDisplay
-                            banner={banner}
-                            timeRemaining={timeRemaining}
-                            editing={editing}
-                            newDescription={newDescription}
-                            newLink={newLink}
-                            newTimer={newTimer}
-                            setNewDescription={setNewDescription}
-                            setNewLink={setNewLink}
-                            setNewTimer={setNewTimer}
-                            startEditing={startEditing}
-                            cancelEditing={cancelEditing}
-                            handleSave={handleSave}
-                        />
-                    )}
+                    <BannerDisplay
+                        banner={banner}
+                        timeRemaining={timeRemaining}
+                        editing={editing}
+                        newDescription={newDescription}
+                        newLink={newLink}
+                        newTimer={newTimer}
+                        setNewDescription={setNewDescription}
+                        setNewLink={setNewLink}
+                        setNewTimer={setNewTimer}
+                        startEditing={startEditing}
+                        cancelEditing={cancelEditing}
+                        handleSave={handleSave}
+                    />
                 </div>
             )}
 
